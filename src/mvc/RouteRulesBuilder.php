@@ -6,7 +6,6 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Lcobucci\JWT\Token;
 use mgboot\core\annotation\ClientIp;
 use mgboot\core\annotation\DeleteMapping;
-use mgboot\core\annotation\DtoBind;
 use mgboot\core\annotation\GetMapping;
 use mgboot\core\annotation\HttpHeader;
 use mgboot\core\annotation\JwtAuth;
@@ -350,12 +349,6 @@ final class RouteRulesBuilder
                     $params[$i] = HandlerFuncArgInfo::create($map1);
                     continue;
                 }
-
-                if ($anno instanceof DtoBind) {
-                    $map1['dtoClassName'] = $typeName;
-                    $params[$i] = HandlerFuncArgInfo::create($map1);
-                    continue;
-                }
             }
 
             $params[$i] = HandlerFuncArgInfo::create($map1);
@@ -400,7 +393,7 @@ final class RouteRulesBuilder
         $extraAnnotations = [];
 
         foreach ($annos as $anno) {
-            if (!is_object($anno)) {
+            if (!is_object($anno) || !method_exists($anno, 'getValue')) {
                 continue;
             }
 
@@ -418,7 +411,10 @@ final class RouteRulesBuilder
                 continue;
             }
 
-            $extraAnnotations[] = $clazz;
+            $extraAnnotations[] = [
+                'annoClazz' => $clazz,
+                'initParams' => $anno->getValue()
+            ];
         }
 
         return compact('extraAnnotations');

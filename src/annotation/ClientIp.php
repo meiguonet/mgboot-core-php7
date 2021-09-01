@@ -7,7 +7,7 @@ use Doctrine\Common\Annotations\Annotation\Target;
 
 /**
  * @Annotation
- * @Target({"ANNOTATION", "PROPERTY"})
+ * @Target("ANNOTATION")
  */
 final class ClientIp
 {

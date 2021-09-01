@@ -7,7 +7,7 @@ use mgboot\constant\RequestParamSecurityMode as SecurityMode;
 
 /**
  * @Annotation
- * @Target("METHOD")
+ * @Target("ANNOTATION")
  */
 final class RequestParam
 {

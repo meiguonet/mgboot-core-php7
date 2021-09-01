@@ -6,7 +6,7 @@ use Doctrine\Common\Annotations\Annotation\Target;
 
 /**
  * @Annotation
- * @Target({"METHOD","PROPERTY"})
+ * @Target("ANNOTATION")
  */
 final class PathVariable
 {

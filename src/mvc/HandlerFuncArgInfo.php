@@ -93,11 +93,6 @@ class HandlerFuncArgInfo
      */
     private $needRequestBody = false;
 
-    /**
-     * @var string
-     */
-    private $dtoClassName = '';
-
     private function __construct(?array $data = null)
     {
         if (empty($data)) {
@@ -250,13 +245,5 @@ class HandlerFuncArgInfo
     public function isNeedRequestBody(): bool
     {
         return $this->needRequestBody;
-    }
-
-    /**
-     * @return string
-     */
-    public function getDtoClassName(): string
-    {
-        return $this->dtoClassName;
     }
 }

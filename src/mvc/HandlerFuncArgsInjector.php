@@ -7,11 +7,7 @@ use mgboot\core\http\server\Request;
 use mgboot\http\server\UploadedFile;
 use mgboot\util\ArrayUtils;
 use mgboot\util\JsonUtils;
-use mgboot\util\ReflectUtils;
 use mgboot\util\StringUtils;
-use ReflectionClass;
-use ReflectionMethod;
-use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 use Throwable;
@@ -88,11 +84,6 @@ final class HandlerFuncArgsInjector
 
             if ($info->isNeedRequestBody()) {
                 self::injectRequestBody($req, $args, $info);
-                continue;
-            }
-
-            if ($info->getDtoClassName() !== '') {
-                self::injectDto($req, $args, $info);
                 continue;
             }
 
@@ -299,106 +290,6 @@ final class HandlerFuncArgsInjector
         }
 
         $args[] = $payload;
-    }
-
-    private static function injectDto(Request $req, array &$args, HandlerFuncArgInfo $info): void
-    {
-        $handler = $req->getRouteRule()->getHandler();
-        $fmt = '@@fmt:' . self::$fmt1 . ', reason: %s';
-        $isGet = strtoupper($req->getMethod()) === 'GET';
-        $contentType = $req->getHeader('Content-Type');
-        $isJsonPayload = stripos($contentType, 'application/json') !== false;
-
-        $isXmlPayload = stripos($contentType, 'application/xml') !== false ||
-            stripos($contentType, 'text/xml') !== false;
-
-        if ($isGet) {
-            $map1 = $req->getQueryParams();
-        } else if ($isJsonPayload) {
-            $map1 = JsonUtils::mapFrom($req->getRawBody());
-        } else if ($isXmlPayload) {
-            $map1 = StringUtils::xml2assocArray($req->getRawBody());
-        } else {
-            $map1 = array_merge($req->getQueryParams(), $req->getFormData());
-        }
-
-        if (!is_array($map1)) {
-            if ($info->isNullable()) {
-                $args[] = null;
-                return;
-            }
-
-            self::thowException($handler, $info, $fmt, 'param map is empty');
-        }
-
-        $className = $info->getDtoClassName();
-
-        try {
-            $bean = new $className();
-        } catch (Throwable $ex) {
-            $bean = null;
-        }
-
-        if (!is_object($bean)) {
-            if ($info->isNullable()) {
-                $args[] = null;
-                return;
-            }
-
-            self::thowException($handler, $info, $fmt, '无法实例化 dto 对象');
-        }
-
-        list($success, $errorTips) = self::mapToBean($bean, $map1);
-
-        if (!$success) {
-            if ($info->isNullable()) {
-                $args[] = null;
-                return;
-            }
-
-            self::thowException($handler, $info, $fmt, $errorTips);
-        }
-
-        $args[] = $bean;
-    }
-
-    private static function mapToBean(object $bean, array $map1): array
-    {
-        try {
-            $clazz = new ReflectionClass($bean);
-        } catch (Throwable $ex) {
-            return [false, $ex->getMessage()];
-        }
-
-        try {
-            $fields = $clazz->getProperties(ReflectionProperty::IS_PRIVATE);
-        } catch (Throwable $ex) {
-            return [false, $ex->getMessage()];
-        }
-
-        try {
-            $methods = $clazz->getMethods(ReflectionMethod::IS_PUBLIC);
-        } catch (Throwable $ex) {
-            return [false, $ex->getMessage()];
-        }
-
-        foreach ($fields as $field) {
-            $setter = ReflectUtils::getSetter($field, $methods);
-
-            if (!($setter instanceof ReflectionMethod)) {
-                continue;
-            }
-
-            $mapValue = ReflectUtils::getMapValueByProperty($map1, $field);
-
-            try {
-                $setter->invoke($bean, $mapValue);
-            } catch (Throwable $ex) {
-                return [false, $ex->getMessage()];
-            }
-        }
-
-        return [true, ''];
     }
 
     /**

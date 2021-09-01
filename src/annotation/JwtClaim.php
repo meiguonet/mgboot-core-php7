@@ -3,11 +3,10 @@
 namespace mgboot\core\annotation;
 
 use Doctrine\Common\Annotations\Annotation\Target;
-use mgboot\Cast;
 
 /**
  * @Annotation
- * @Target({"ANNOTATION", "PROPERTY"})
+ * @Target("ANNOTATION")
  */
 final class JwtClaim
 {
