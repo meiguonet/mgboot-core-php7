@@ -2,12 +2,10 @@
 
 namespace mgboot\core\annotation;
 
-use Doctrine\Common\Annotations\Annotation\Target;
 use mgboot\constant\Regexp;
 
 /**
  * @Annotation
- * @Target("ANNOTATION")
  */
 final class MapBind
 {
