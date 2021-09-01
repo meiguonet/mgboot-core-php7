@@ -14,7 +14,7 @@ final class NoopLogger implements LoggerInterface
     {
     }
 
-    public static function create(): self
+    public static function create(): NoopLogger
     {
         return new self();
     }

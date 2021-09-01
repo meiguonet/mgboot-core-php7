@@ -2,20 +2,29 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use Doctrine\Common\Annotations\Annotation\Target;
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+/**
+ * @Annotation
+ * @Target({"ANNOTATION", "PROPERTY"})
+ */
 final class UploadedFile
 {
-    private string $formFieldName;
+    /**
+     * @var string
+     */
+    private $value;
 
-    public function __construct(string $arg0)
+    public function __construct(?string $value = null)
     {
-        $this->formFieldName = $arg0;
+        $this->value = empty($value) ? 'file' : $value;
     }
 
-    public function getFormFieldName(): string
+    /**
+     * @return string
+     */
+    public function getValue(): string
     {
-        return $this->formFieldName;
+        return $this->value;
     }
 }

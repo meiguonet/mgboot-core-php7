@@ -16,7 +16,7 @@
   },
   "require": {
     "php": ">=7.3.0",
-    "meiguonet/mgboot-common-php7": "^1.1.0",
+    "meiguonet/mgboot-common-php7": "^1.0.0",
     "nikic/fast-route": "^1.3.0"
   }
 }

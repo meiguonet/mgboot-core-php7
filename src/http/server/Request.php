@@ -2,7 +2,7 @@
 
 namespace mgboot\core\http\server;
 
-use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Token;
 use mgboot\Cast;
 use mgboot\constant\Regexp;
@@ -19,27 +19,77 @@ use Throwable;
 final class Request
 {
 
-    private mixed $swooleHttpRequest = null;
-    private string $protocolVersion = '1.1';
-    private string $httpMethod = 'GET';
-    private array $headers = [];
-    private array $queryParams = [];
-    private array $formData = [];
-    private array $pathVariables = [];
-    private string $body = '';
+    /**
+     * @var mixed
+     */
+    private $swooleHttpRequest = null;
+
+    /**
+     * @var string
+     */
+    private $protocolVersion = '1.1';
+
+    /**
+     * @var string
+     */
+    private $httpMethod = 'GET';
+
+    /**
+     * @var array
+     */
+    private $headers = [];
+
+    /**
+     * @var array
+     */
+    private $queryParams = [];
+
+    /**
+     * @var array
+     */
+    private $formData = [];
+
+    /**
+     * @var array
+     */
+    private $pathVariables = [];
+
+    /**
+     * @var string
+     */
+    private $body = '';
 
     /**
      * @var UploadedFile[]
      */
-    private array $uploadedFiles = [];
+    private $uploadedFiles = [];
 
-    private string|float $execStart;
-    private ?Token $jwt = null;
-    private array $serverParams = [];
-    private array $cookieParams = [];
-    private ?RouteRule $routeRule = null;
+    /**
+     * @var string|float
+     */
+    private $execStart;
 
-    private function __construct(mixed $swooleHttpRequest = null)
+    /**
+     * @var Token|null
+     */
+    private $jwt = null;
+
+    /**
+     * @var array
+     */
+    private $serverParams = [];
+
+    /**
+     * @var array
+     */
+    private $cookieParams = [];
+
+    /**
+     * @var RouteRule|null
+     */
+    private $routeRule = null;
+
+    private function __construct($swooleHttpRequest = null)
     {
         if (Swoole::isSwooleHttpRequest($swooleHttpRequest)) {
             $this->swooleHttpRequest = $swooleHttpRequest;
@@ -62,18 +112,18 @@ final class Request
     {
     }
 
-    public static function create(mixed $swooleHttpRequest = null): self
+    public static function create($swooleHttpRequest = null): Request
     {
         return new self($swooleHttpRequest);
     }
 
-    public function withRouteRule(RouteRule $rule): self
+    public function withRouteRule(RouteRule $rule): Request
     {
         $this->routeRule = $rule;
         return $this;
     }
 
-    public function withPathVariables(array $pathVariables): self
+    public function withPathVariables(array $pathVariables): Request
     {
         if (ArrayUtils::isAssocArray($pathVariables)) {
             $this->pathVariables = $pathVariables;
@@ -113,7 +163,11 @@ final class Request
         return $this->serverParams;
     }
 
-    public function getServerParam(string $name): mixed
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function getServerParam(string $name)
     {
        foreach ($this->serverParams as $key => $value) {
             if (StringUtils::equals($key, $name, true)) {
@@ -144,7 +198,10 @@ final class Request
         return $this->body;
     }
 
-    public function getParsedBody(): array|object|null
+    /**
+     * @return array|object|null
+     */
+    public function getParsedBody()
     {
         $contentType = $this->headers['Content-Type'];
 
@@ -313,11 +370,14 @@ final class Request
         $map1 = array_merge($this->queryParams, $this->formData);
         $value = Cast::toString($map1[$name]);
 
-        return match ($securityMode) {
-            SecurityMode::HTML_PURIFY => HtmlPurifier::purify($value),
-            SecurityMode::STRIP_TAGS => strip_tags($value),
-            default => $value,
-        };
+        switch ($securityMode) {
+            case SecurityMode::HTML_PURIFY:
+                return HtmlPurifier::purify($value);
+            case SecurityMode::STRIP_TAGS:
+                return strip_tags($value);
+            default:
+                return $value;
+        }
     }
 
     public function requestParamAsArray(string $name): array
@@ -327,7 +387,11 @@ final class Request
         return is_array($ret) ? $ret : [];
     }
 
-    public function getRequestParams(string|array $rules): array
+    /**
+     * @param string|array $rules
+     * @return array
+     */
+    public function getRequestParams($rules): array
     {
         return ArrayUtils::requestParams(array_merge($this->queryParams, $this->formData), $rules);
     }
@@ -337,7 +401,10 @@ final class Request
         return $this->jwt;
     }
 
-    public function getExecStart(): string|float
+    /**
+     * @return string|float
+     */
+    public function getExecStart()
     {
         return $this->execStart;
     }
@@ -371,7 +438,7 @@ final class Request
         if ($swooleMode) {
             try {
                 $map1 = $this->swooleHttpRequest->header;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {
@@ -389,7 +456,7 @@ final class Request
 
             $key = strtolower($key);
 
-            if (str_starts_with($key, 'http_')) {
+            if (StringUtils::startsWith($key, 'http_')) {
                 $headerName = substr($key, 5);
             } else if (stripos($key, 'PHP_AUTH_DIGEST') !== false) {
                 $headerName = 'authorization';
@@ -414,7 +481,7 @@ final class Request
         if (Swoole::isSwooleHttpRequest($req)) {
             try {
                 $map1 = $req->get;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {
@@ -441,7 +508,7 @@ final class Request
         if (Swoole::isSwooleHttpRequest($req)) {
             try {
                 $map1 = $req->post;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {
@@ -487,7 +554,7 @@ final class Request
             if (method_exists($req, 'getContent')) {
                 try {
                     return Cast::toString($req->getContent());
-                } catch (Throwable) {
+                } catch (Throwable $ex) {
                     return '';
                 }
             }
@@ -495,7 +562,7 @@ final class Request
             if (method_exists($req, 'rawContent')) {
                 try {
                     return Cast::toString($req->rawContent());
-                } catch (Throwable) {
+                } catch (Throwable $ex) {
                     return '';
                 }
             }
@@ -513,7 +580,7 @@ final class Request
         if (Swoole::isSwooleHttpRequest($req)) {
             try {
                 $map1 = $req->files;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {
@@ -558,13 +625,13 @@ final class Request
 
         $token = preg_replace('/[\x20\t]+/', ' ', trim($token));
 
-        if (str_contains($token, ' ')) {
+        if (strpos($token, ' ') !== false) {
             $token = StringUtils::substringAfterLast($token, ' ');
         }
 
         try {
-            $jwt = (new Token\Parser(new JoseEncoder()))->parse($token);
-        } catch (Throwable) {
+            $jwt = (new Parser())->parse($token);
+        } catch (Throwable $ex) {
             $jwt = null;
         }
 
@@ -578,7 +645,7 @@ final class Request
         if (is_object($req)) {
             try {
                 $map1 = $req->server;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {
@@ -605,7 +672,7 @@ final class Request
         if (is_object($req)) {
             try {
                 $map1 = $req->cookie;
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $map1 = null;
             }
         } else {

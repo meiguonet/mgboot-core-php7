@@ -17,7 +17,7 @@ class ExecuteTimeLogMiddleware implements Middleware
     {
     }
 
-    public static function create(): self
+    public static function create(): ExecuteTimeLogMiddleware
     {
         return new self();
     }

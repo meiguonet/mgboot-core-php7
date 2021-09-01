@@ -15,7 +15,7 @@ class RequestLogMiddleware implements Middleware
     {
     }
 
-    public static function create(): self
+    public static function create(): RequestLogMiddleware
     {
         return new self();
     }

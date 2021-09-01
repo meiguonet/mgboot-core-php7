@@ -4,16 +4,27 @@ namespace mgboot\core\http\server\response;
 
 
 use mgboot\core\exception\HttpError;
-use mgboot\trait\MapAbleTrait;
+use mgboot\traits\MapAbleTrait;
 use Throwable;
 
 final class ImageResponse implements ResponsePayload
 {
     use MapAbleTrait;
 
-    private string $filepath = '';
-    private string $buf = '';
-    private string $mimeType = '';
+    /**
+     * @var string
+     */
+    private $filepath = '';
+
+    /**
+     * @var string
+     */
+    private $buf = '';
+
+    /**
+     * @var string
+     */
+    private $mimeType = '';
 
     private function __construct(?array $data = null)
     {
@@ -28,7 +39,7 @@ final class ImageResponse implements ResponsePayload
     {
     }
 
-    public static function fromFile(string $filepath): self
+    public static function fromFile(string $filepath): ImageResponse
     {
         if (empty($filepath) || !is_file($filepath)) {
             return new self();
@@ -48,12 +59,12 @@ final class ImageResponse implements ResponsePayload
             }
 
             return new self(compact('filepath', 'mimeType'));
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             return new self();
         }
     }
 
-    public static function fromBuffer(string $contents, string $mimeType): self
+    public static function fromBuffer(string $contents, string $mimeType): ImageResponse
     {
         $buf = $contents;
         return new self(compact('buf', 'mimeType'));
@@ -64,7 +75,10 @@ final class ImageResponse implements ResponsePayload
         return $this->mimeType;
     }
 
-    public function getContents(): string|HttpError
+    /**
+     * @return string|HttpError
+     */
+    public function getContents()
     {
         $mimeType = $this->mimeType;
 

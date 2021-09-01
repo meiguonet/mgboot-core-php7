@@ -9,9 +9,12 @@ use Throwable;
 
 final class JsonResponse implements ResponsePayload
 {
-    private mixed $payload = null;
+    /**
+     * @var mixed
+     */
+    private $payload = null;
 
-    private function __construct(mixed $payload = null)
+    private function __construct($payload = null)
     {
         if ($payload === null) {
             return;
@@ -24,7 +27,7 @@ final class JsonResponse implements ResponsePayload
     {
     }
 
-    public static function withPayload(mixed $payload): self
+    public static function withPayload($payload): JsonResponse
     {
         return new self($payload);
     }
@@ -34,7 +37,10 @@ final class JsonResponse implements ResponsePayload
         return 'application/json; charset=utf-8';
     }
 
-    public function getContents(): string|HttpError
+    /**
+     * @return string|HttpError
+     */
+    public function getContents()
     {
         $payload = $this->payload;
 

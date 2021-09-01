@@ -2,16 +2,30 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use Doctrine\Common\Annotations\Annotation\Target;
 
-#[Attribute(Attribute::TARGET_METHOD)]
+/**
+ * @Annotation
+ * @Target("METHOD")
+ */
 final class DeleteMapping
 {
-    private string $value;
+    /**
+     * @var string
+     */
+    private $value;
 
-    public function __construct(string $arg0)
+    public function __construct($arg0)
     {
-        $this->value = $arg0;
+        $value = '';
+
+        if (is_string($arg0) && $arg0 !== '') {
+            $value = $arg0;
+        } else if (is_array($arg0) && is_string($arg0['value']) && $arg0['value'] !== '') {
+            $value = $arg0['value'];
+        }
+
+        $this->value = $value;
     }
 
     /**

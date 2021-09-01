@@ -9,9 +9,20 @@ use Throwable;
 
 final class RoutingContext
 {
-    private Request $request;
-    private Response $response;
-    private bool $hasNext = true;
+    /**
+     * @var Request
+     */
+    private $request;
+
+    /**
+     * @var Response
+     */
+    private $response;
+
+    /**
+     * @var bool
+     */
+    private $hasNext = true;
 
     private function __construct(Request $request, Response $response)
     {
@@ -19,11 +30,11 @@ final class RoutingContext
         $this->response = $response;
     }
 
-    private function __clone(): void
+    private function __clone()
     {
     }
 
-    public static function create(Request $request, Response $response): self
+    public static function create(Request $request, Response $response): RoutingContext
     {
         return new self($request, $response);
     }

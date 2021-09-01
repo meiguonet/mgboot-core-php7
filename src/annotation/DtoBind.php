@@ -2,9 +2,12 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use Doctrine\Common\Annotations\Annotation\Target;
 
-#[Attribute(Attribute::TARGET_PARAMETER)]
+/**
+ * @Annotation
+ * @Target("ANNOTATION")
+ */
 final class DtoBind
 {
 }

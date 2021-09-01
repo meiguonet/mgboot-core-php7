@@ -2,24 +2,63 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use mgboot\Cast;
 use mgboot\constant\RequestParamSecurityMode as SecurityMode;
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+/**
+ * @Annotation
+ * @Target("METHOD")
+ */
 final class RequestParam
 {
-    private string $name;
-    private bool $decimal;
-    private int $securityMode;
 
-    public function __construct(string $name = '', bool $decimal = false, int $securityMode = SecurityMode::STRIP_TAGS)
+    /**
+     * @var string
+     */
+    private $name;
+
+    /**
+     * @var bool
+     */
+    private $decimal;
+
+    /**
+     * @var int
+     */
+    private $securityMode;
+
+    public function __construct($arg0 = null)
     {
-        if (!in_array($securityMode, [
+        $name = '';
+        $decimal = false;
+        $securityMode = SecurityMode::STRIP_TAGS;
+
+        $modes = [
             SecurityMode::NONE,
             SecurityMode::HTML_PURIFY,
             SecurityMode::STRIP_TAGS
-        ])) {
-            $securityMode = SecurityMode::STRIP_TAGS;
+        ];
+
+        if (is_string($arg0) && $arg0 !== '') {
+            $name = $arg0;
+        } else if (is_array($arg0) && !empty($arg0)) {
+            if (is_string($arg0['name']) && $arg0['name'] !== '') {
+                $name = $arg0['name'];
+            }
+
+            if (is_bool($arg0['decimal'])) {
+                $decimal = $arg0['decimal'];
+            }
+
+            if (is_int($arg0['securityMode']) && in_array($arg0['securityMode'], $modes)) {
+                $securityMode = $arg0['securityMode'];
+            } else if (is_string($arg0['securityMode']) && is_numeric($arg0['securityMode'])) {
+                $n1 = Cast::toInt($arg0['securityMode']);
+
+                if (in_array($n1, $modes)) {
+                    $securityMode = $n1;
+                }
+            }
         }
 
         $this->name = $name;

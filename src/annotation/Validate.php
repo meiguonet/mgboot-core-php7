@@ -2,31 +2,43 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use Doctrine\Common\Annotations\Annotation\Target;
 use mgboot\constant\Regexp;
-use mgboot\util\ArrayUtils;
 
-#[Attribute(Attribute::TARGET_METHOD)]
+/**
+ * @Annotation
+ * @Target("METHOD")
+ */
 final class Validate
 {
     /**
      * @var string[]
      */
-    private array $rules;
+    private $rules;
 
-    private bool $failfast;
+    /**
+     * @var bool
+     */
+    private $failfast;
 
-    public function __construct(string|array $rules, bool $failfast = false)
+    public function __construct(array $values)
     {
-        $_rules = [];
+        $rules = [];
+        $failfast = false;
 
-        if (is_string($rules) && $rules !== '') {
-            $_rules = preg_split(Regexp::COMMA_SEP, $rules);
-        } else if (ArrayUtils::isStringArray($rules)) {
-            $_rules = $rules;
+        if (is_string($values['rules']) && $values['rules'] !== '') {
+            $rules = preg_split(Regexp::COMMA_SEP, $values['rules']);
+        } else if (is_array($values['rules']) && !empty($values['rules'])) {
+            foreach ($values['rules'] as $s1) {
+                if (!is_string($s1) || $s1 === '') {
+                    continue;
+                }
+
+                $rules[] = $s1;
+            }
         }
 
-        $this->rules = $_rules;
+        $this->rules = $rules;
         $this->failfast = $failfast;
     }
 

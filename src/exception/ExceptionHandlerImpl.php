@@ -8,18 +8,21 @@ use Throwable;
 
 final class ExceptionHandlerImpl implements ExceptionHandler
 {
-    private string $clazz;
+    /**
+     * @var string
+     */
+    private $clazz;
 
     private function __construct(string $clazz)
     {
         $this->clazz = $clazz;
     }
 
-    private function __clone(): void
+    private function __clone()
     {
     }
 
-    public static function create(string $clazz): self
+    public static function create(string $clazz): ExceptionHandlerImpl
     {
         return new self($clazz);
     }

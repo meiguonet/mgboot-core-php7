@@ -16,8 +16,15 @@ use Throwable;
 
 final class RequestHandler
 {
-    private Request $request;
-    private Response $response;
+    /**
+     * @var Request
+     */
+    private $request;
+
+    /**
+     * @var Response
+     */
+    private $response;
 
     private function __construct(Request $request, Response $response)
     {
@@ -29,7 +36,7 @@ final class RequestHandler
     {
     }
 
-    public static function create(Request $request, Response $response): self
+    public static function create(Request $request, Response $response): RequestHandler
     {
         return new self($request, $response);
     }
@@ -43,7 +50,9 @@ final class RequestHandler
         $stages = [];
 
         foreach ($this->getPreHandleMiddlewares($request, $middlewares) as $mid) {
-            $stages[] = fn(RoutingContext $rc) => $mid->preHandle($rc);
+            $stages[] = function (RoutingContext $rc) use ($mid) {
+                $mid->preHandle($rc);
+            };
         }
 
         $routeRule = $request->getRouteRule();
@@ -58,7 +67,7 @@ final class RequestHandler
 
             try {
                 $bean = new $clazz();
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $bean = null;
             }
 
@@ -95,7 +104,9 @@ final class RequestHandler
         };
 
         foreach ($this->getPostHandleMiddlewares($middlewares) as $mid) {
-            $stages[] = fn(RoutingContext $rc) => $mid->preHandle($rc);
+            $stages[] = function (RoutingContext $rc) use ($mid) {
+                $mid->preHandle($rc);
+            };
         }
 
         $response = $this->response;
@@ -137,7 +148,9 @@ final class RequestHandler
             $middlewares[] = DataValidateMiddleware::create();
         }
 
-        $customMiddlewares = array_filter($customMiddlewares, fn($it) => $it->getType() === Middleware::PRE_HANDLE_MIDDLEWARE);
+        $customMiddlewares = array_filter($customMiddlewares, function ($it) {
+            return $it->getType() === Middleware::PRE_HANDLE_MIDDLEWARE;
+        });
 
         if (!empty($customMiddlewares)) {
             $customMiddlewares = array_values($customMiddlewares);
@@ -148,7 +161,10 @@ final class RequestHandler
             return [];
         }
 
-        $middlewares = collect($middlewares)->sortBy(fn($it) => $it->getOrder(), SORT_NUMERIC);
+        $middlewares = collect($middlewares)->sortBy(function ($it) {
+            return $it->getOrder();
+        }, SORT_NUMERIC);
+
         return array_values($middlewares->toArray());
     }
 
@@ -158,7 +174,10 @@ final class RequestHandler
      */
     private function getPostHandleMiddlewares(array $customMiddlewares = []): array
     {
-        $middlewares = array_filter($customMiddlewares, fn($it) => $it->getType() === Middleware::POST_HANDLE_MIDDLEWARE);
+        $middlewares = array_filter($customMiddlewares, function ($it) {
+            return $it->getType() === Middleware::POST_HANDLE_MIDDLEWARE;
+        });
+
         $middlewares = empty($middlewares) ? [] : array_values($middlewares);
 
         if (MgBoot::isExecuteTimeLogEnabled()) {
@@ -169,7 +188,10 @@ final class RequestHandler
             return [];
         }
 
-        $middlewares = collect($middlewares)->sortBy(fn($it) => $it->getOrder(), SORT_NUMERIC);
+        $middlewares = collect($middlewares)->sortBy(function ($it) {
+            return $it->getOrder();
+        }, SORT_NUMERIC);
+
         return array_values($middlewares->toArray());
     }
 }

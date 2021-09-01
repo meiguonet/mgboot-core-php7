@@ -21,7 +21,7 @@ class JwtAuthMiddleware implements Middleware
     {
     }
 
-    public static function create(): self
+    public static function create(): JwtAuthMiddleware
     {
         return new self();
     }
@@ -66,11 +66,16 @@ class JwtAuthMiddleware implements Middleware
         list($passed, $errCode) = JwtUtils::verify($jwt, $settings->getIssuer());
 
         if (!$passed) {
-            $ex = match ($errCode) {
-                -1 => new AccessTokenInvalidException(),
-                -2 => new AccessTokenExpiredException(),
-                default => null,
-            };
+            switch ($errCode) {
+                case -1:
+                    $ex = new AccessTokenInvalidException();
+                    break;
+                case -2:
+                    $ex = new AccessTokenExpiredException();
+                    break;
+                default:
+                    $ex = null;
+            }
 
             $ctx->getResponse()->withPayload($ex);
             $ctx->next(false);

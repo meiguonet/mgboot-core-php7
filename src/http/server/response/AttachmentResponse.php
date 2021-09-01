@@ -3,16 +3,27 @@
 namespace mgboot\core\http\server\response;
 
 use mgboot\core\exception\HttpError;
-use mgboot\trait\MapAbleTrait;
+use mgboot\traits\MapAbleTrait;
 use mgboot\util\FileUtils;
 
 final class AttachmentResponse implements ResponsePayload
 {
     use MapAbleTrait;
 
-    private string $filepath = '';
-    private string $buf = '';
-    private string $attachmentFileName = '';
+    /**
+     * @var string
+     */
+    private $filepath = '';
+
+    /**
+     * @var string
+     */
+    private $buf = '';
+
+    /**
+     * @var string
+     */
+    private $attachmentFileName = '';
 
     private function __construct(?array $data = null)
     {
@@ -55,7 +66,10 @@ final class AttachmentResponse implements ResponsePayload
         return empty($mimeType) ? 'application/octet-stream' : $mimeType;
     }
 
-    public function getContents(): string|HttpError
+    /**
+     * @return string|HttpError
+     */
+    public function getContents()
     {
         $attachmentFileName = $this->attachmentFileName;
 

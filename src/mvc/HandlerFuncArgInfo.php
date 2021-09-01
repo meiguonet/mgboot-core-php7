@@ -2,28 +2,101 @@
 
 namespace mgboot\core\mvc;
 
-use mgboot\trait\MapAbleTrait;
+use mgboot\traits\MapAbleTrait;
 
 class HandlerFuncArgInfo
 {
     use MapAbleTrait;
 
-    private string $name = '';
-    private string $type = '';
-    private bool $nullable = false;
-    private bool $request = false;
-    private bool $jwt = false;
-    private bool $clientIp = false;
-    private string $httpHeaderName = '';
-    private string $jwtClaimName = '';
-    private string $pathVariableName = '';
-    private string $requestParamName = '';
-    private bool $paramMap = false;
-    private array $paramMapRules = [];
-    private bool $uploadedFile = false;
-    private string $formFieldName = '';
-    private bool $needRequestBody = false;
-    private string $dtoClassName = '';
+    /**
+     * @var string
+     */
+    private $name = '';
+
+    /**
+     * @var string
+     */
+    private $type = '';
+
+    /**
+     * @var bool
+     */
+    private $nullable = false;
+
+    /**
+     * @var bool
+     */
+    private $request = false;
+
+    /**
+     * @var bool
+     */
+    private $jwt = false;
+
+    /**
+     * @var bool
+     */
+    private $clientIp = false;
+
+    /**
+     * @var string
+     */
+    private $httpHeaderName = '';
+
+    /**
+     * @var string
+     */
+    private $jwtClaimName = '';
+
+    /**
+     * @var string
+     */
+    private $pathVariableName = '';
+
+    /**
+     * @var string
+     */
+    private $requestParamName = '';
+
+    /**
+     * @var bool
+     */
+    private $decimal = false;
+
+    /**
+     * @var int
+     */
+    private $securityMode = 3;
+
+    /**
+     * @var bool
+     */
+    private $paramMap = false;
+
+    /**
+     * @var array
+     */
+    private $paramMapRules = [];
+
+    /**
+     * @var bool
+     */
+    private $uploadedFile = false;
+
+    /**
+     * @var string
+     */
+    private $formFieldName = '';
+
+    /**
+     * @var bool
+     */
+    private $needRequestBody = false;
+
+    /**
+     * @var string
+     */
+    private $dtoClassName = '';
 
     private function __construct(?array $data = null)
     {
@@ -38,7 +111,7 @@ class HandlerFuncArgInfo
     {
     }
 
-    public static function create(?array $data = null): self
+    public static function create(?array $data = null): HandlerFuncArgInfo
     {
         return new self($data);
     }
@@ -121,6 +194,22 @@ class HandlerFuncArgInfo
     public function getRequestParamName(): string
     {
         return $this->requestParamName;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDecimal(): bool
+    {
+        return $this->decimal;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSecurityMode(): int
+    {
+        return $this->securityMode;
     }
 
     /**

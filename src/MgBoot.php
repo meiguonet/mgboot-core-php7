@@ -26,28 +26,60 @@ use Throwable;
 
 final class MgBoot
 {
-    private static string $controllerDir = '';
-    private static ?LoggerInterface $runtimeLogger = null;
-    private static bool $requestLogEnabled = false;
-    private static ?LoggerInterface $requestLogLogger = null;
-    private static bool $executeTimeLogEnabled = false;
-    private static ?LoggerInterface $executeTimeLogLogger = null;
-    private static ?CorsSettings $corsSettings = null;
+    /**
+     * @var string
+     */
+    private static $controllerDir = '';
+
+    /**
+     * @var LoggerInterface|null
+     */
+    private static $runtimeLogger = null;
+
+    /**
+     * @var bool
+     */
+    private static $requestLogEnabled = false;
+
+    /**
+     * @var LoggerInterface|null
+     */
+    private static $requestLogLogger = null;
+
+    /**
+     * @var bool
+     */
+    private static $executeTimeLogEnabled = false;
+
+    /**
+     * @var LoggerInterface|null
+     */
+    private static $executeTimeLogLogger = null;
+
+    /**
+     * @var CorsSettings|null
+     */
+    private static $corsSettings = null;
+
     /**
      * @var JwtSettings[]
      */
-    private static array $jwtSettings = [];
-    private static bool $gzipOutputEnabled = true;
+    private static $jwtSettings = [];
+
+    /**
+     * @var bool
+     */
+    private static $gzipOutputEnabled = true;
 
     /**
      * @var ExceptionHandler[]
      */
-    private static array $exceptionHandlers = [];
+    private static $exceptionHandlers = [];
 
     /**
      * @var Middleware[]
      */
-    private static array $middlewares = [];
+    private static $middlewares = [];
 
     private function __construct()
     {
@@ -80,7 +112,7 @@ final class MgBoot
         $httpMethod = strtoupper($request->getMethod());
         $uri = $request->getRequestUrl();
 
-        if (str_contains($uri, '?')) {
+        if (strpos($uri, '?') !== false) {
             $uri = substr($uri, 0, strpos($uri, '?'));
         }
 
@@ -266,7 +298,7 @@ final class MgBoot
             $found = false;
 
             foreach (self::$exceptionHandlers as $handler) {
-                if (str_contains($handler->getExceptionClassName(), $clazz)) {
+                if (strpos($handler->getExceptionClassName(), $clazz) !== false) {
                     $found = true;
                     break;
                 }
@@ -313,8 +345,7 @@ final class MgBoot
         }
 
         if ($matched instanceof RouteRule) {
-            /** @noinspection PhpUndefinedVariableInspection */
-            $request->withRouteRule($rule);
+            $request->withRouteRule($matched);
             return true;
         }
 

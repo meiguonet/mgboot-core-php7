@@ -8,10 +8,20 @@ use mgboot\util\StringUtils;
 
 final class CorsSettings
 {
-    private bool $enabled;
-    private array $allowedOrigins = ['*'];
+    /**
+     * @var bool
+     */
+    private $enabled;
 
-    private array $allowedHeaders = [
+    /**
+     * @var string[]
+     */
+    private $allowedOrigins = ['*'];
+
+    /**
+     * @var string[]
+     */
+    private $allowedHeaders = [
         'Content-Type',
         'Content-Length',
         'Authorization',
@@ -20,7 +30,10 @@ final class CorsSettings
         'X-Requested-With'
     ];
 
-    private array $allowedMethods = [
+    /**
+     * @var string[]
+     */
+    private $allowedMethods = [
         'GET',
         'POST',
         'PUT',
@@ -29,9 +42,15 @@ final class CorsSettings
         'OPTIONS'
     ];
 
-    private bool $allowCredentials = false;
+    /**
+     * @var bool
+     */
+    private $allowCredentials = false;
 
-    private array $exposedHeaders = [
+    /**
+     * @var string[]
+     */
+    private $exposedHeaders = [
         'Content-Length',
         'Access-Control-Allow-Origin',
         'Access-Control-Allow-Headers',
@@ -40,7 +59,10 @@ final class CorsSettings
         'Content-Type'
     ];
 
-    private int $maxAge = 0;
+    /**
+     * @var int
+     */
+    private $maxAge = 0;
 
     private function __construct(bool $enabled)
     {
@@ -51,12 +73,16 @@ final class CorsSettings
     {
     }
 
-    public static function create(bool $enabled): self
+    public static function create(bool $enabled): CorsSettings
     {
         return new self($enabled);
     }
 
-    public function withAllowedOrigins(array|string $origins): self
+    /**
+     * @param array|string $origins
+     * @return CorsSettings
+     */
+    public function withAllowedOrigins($origins): CorsSettings
     {
         $_origins = [];
 
@@ -77,7 +103,11 @@ final class CorsSettings
         return $this;
     }
 
-    public function withAllowedHeaders(array|string $headers): self
+    /**
+     * @param array|string $headers
+     * @return CorsSettings
+     */
+    public function withAllowedHeaders($headers): CorsSettings
     {
         $_headers = [];
 
@@ -94,7 +124,11 @@ final class CorsSettings
         return $this;
     }
 
-    public function withAllowedMethods(array|string $methods): self
+    /**
+     * @param array|string $methods
+     * @return CorsSettings
+     */
+    public function withAllowedMethods($methods): CorsSettings
     {
         $_methods = [];
 
@@ -111,13 +145,17 @@ final class CorsSettings
         return $this;
     }
 
-    public function withCredentials(): self
+    public function withCredentials(): CorsSettings
     {
         $this->allowCredentials = true;
         return $this;
     }
 
-    public function withExposedHeaders(array|string $headers): self
+    /**
+     * @param array|string $headers
+     * @return CorsSettings
+     */
+    public function withExposedHeaders($headers): CorsSettings
     {
         $_headers = [];
 
@@ -134,7 +172,11 @@ final class CorsSettings
         return $this;
     }
 
-    public function withMaxAge(int|string $maxAge): self
+    /**
+     * @param int|string $maxAge
+     * @return CorsSettings
+     */
+    public function withMaxAge($maxAge): CorsSettings
     {
         $_maxAge = 0;
 

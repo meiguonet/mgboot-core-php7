@@ -2,9 +2,13 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+use Doctrine\Common\Annotations\Annotation\Target;
+
+/**
+ * @Annotation
+ * @Target({"ANNOTATION", "PROPERTY"})
+ */
 final class ClientIp
 {
 }

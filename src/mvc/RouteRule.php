@@ -3,33 +3,51 @@
 namespace mgboot\core\mvc;
 
 
-use mgboot\trait\MapAbleTrait;
+use mgboot\traits\MapAbleTrait;
 
 final class RouteRule
 {
     use MapAbleTrait;
 
-    private string $httpMethod = 'GET';
-    private string $requestMapping = '';
-    private string $handler = '';
-    private string $jwtSettingsKey = '';
+    /**
+     * @var string
+     */
+    private $httpMethod = 'GET';
+
+    /**
+     * @var string
+     */
+    private $requestMapping = '';
+
+    /**
+     * @var string
+     */
+    private $handler = '';
+
+    /**
+     * @var string
+     */
+    private $jwtSettingsKey = '';
 
     /**
      * @var string[]
      */
-    private array $validateRules = [];
+    private $validateRules = [];
 
-    private bool $failfast = false;
+    /**
+     * @var bool
+     */
+    private $failfast = false;
 
     /**
      * @var string[]
      */
-    private array $extraAnnotations = [];
+    private $extraAnnotations = [];
 
     /**
      * @var HandlerFuncArgInfo[]
      */
-    private array $handlerFuncArgs = [];
+    private $handlerFuncArgs = [];
 
     private function __construct(?array $data = null)
     {
@@ -44,7 +62,7 @@ final class RouteRule
     {
     }
 
-    public static function create(?array $data = null): self
+    public static function create(?array $data = null): RouteRule
     {
         return new self($data);
     }
@@ -61,7 +79,7 @@ final class RouteRule
      * @param string $httpMethod
      * @return RouteRule
      */
-    public function setHttpMethod(string $httpMethod): self
+    public function setHttpMethod(string $httpMethod): RouteRule
     {
         $this->httpMethod = $httpMethod;
         return $this;
@@ -79,7 +97,7 @@ final class RouteRule
      * @param string $requestMapping
      * @return RouteRule
      */
-    public function setRequestMapping(string $requestMapping): self
+    public function setRequestMapping(string $requestMapping): RouteRule
     {
         $this->requestMapping = $requestMapping;
         return $this;
@@ -97,7 +115,7 @@ final class RouteRule
      * @param string $handler
      * @return RouteRule
      */
-    public function setHandler(string $handler): self
+    public function setHandler(string $handler): RouteRule
     {
         $this->handler = $handler;
         return $this;
@@ -115,7 +133,7 @@ final class RouteRule
      * @param string $jwtSettingsKey
      * @return RouteRule
      */
-    public function setJwtSettingsKey(string $jwtSettingsKey): self
+    public function setJwtSettingsKey(string $jwtSettingsKey): RouteRule
     {
         $this->jwtSettingsKey = $jwtSettingsKey;
         return $this;
@@ -133,7 +151,7 @@ final class RouteRule
      * @param array $validateRules
      * @return RouteRule
      */
-    public function setValidateRules(array $validateRules): self
+    public function setValidateRules(array $validateRules): RouteRule
     {
         $this->validateRules = $validateRules;
         return $this;
@@ -151,7 +169,7 @@ final class RouteRule
      * @param bool $failfast
      * @return RouteRule
      */
-    public function setFailfast(bool $failfast): self
+    public function setFailfast(bool $failfast): RouteRule
     {
         $this->failfast = $failfast;
         return $this;
@@ -167,10 +185,12 @@ final class RouteRule
 
     /**
      * @param string[] $extraAnnotations
+     * @return RouteRule
      */
-    public function setExtraAnnotations(array $extraAnnotations): void
+    public function setExtraAnnotations(array $extraAnnotations): RouteRule
     {
         $this->extraAnnotations = $extraAnnotations;
+        return $this;
     }
 
     /**
@@ -185,7 +205,7 @@ final class RouteRule
      * @param HandlerFuncArgInfo[] $handlerFuncArgs
      * @return RouteRule
      */
-    public function setHandlerFuncArgs(array $handlerFuncArgs): self
+    public function setHandlerFuncArgs(array $handlerFuncArgs): RouteRule
     {
         $this->handlerFuncArgs = $handlerFuncArgs;
         return $this;

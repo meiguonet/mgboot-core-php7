@@ -14,7 +14,7 @@ final class DataValidator
     /**
      * @var RuleChecker[]
      */
-    private static array $customRuleCheckers = [];
+    private static $customRuleCheckers = [];
 
     private function __construct()
     {
@@ -26,9 +26,14 @@ final class DataValidator
 
     public static function addRuleChecker(RuleChecker $checker): void
     {
-        $matched = collect(self::$customRuleCheckers)->first(fn($it) => (
-            strtolower($it->getRuleName()) === strtolower($checker->getRuleName())
-        ));
+        $matched = null;
+
+        foreach (self::$customRuleCheckers as $it) {
+            if (strtolower($it->getRuleName()) === strtolower($checker->getRuleName())) {
+                $matched = $it;
+                break;
+            }
+        }
 
         if ($matched instanceof RuleChecker) {
             return;
@@ -36,8 +41,14 @@ final class DataValidator
 
         self::$customRuleCheckers[] = $checker;
     }
-    
-    public static function validate(array $data, array $rules, bool $failfast = false): array|string
+
+    /**
+     * @param array $data
+     * @param array $rules
+     * @param bool $failfast
+     * @return array|string
+     */
+    public static function validate(array $data, array $rules, bool $failfast = false)
     {
         if (!ArrayUtils::isStringArray($rules)) {
             return $failfast ? '' : [];
@@ -52,24 +63,24 @@ final class DataValidator
             $checkValue = '';
             $errorTips = '';
 
-            if (str_contains($rule, '@CheckOnNotEmpty') || str_contains($rule, '@WithNotEmpty')) {
+            if (strpos($rule, '@CheckOnNotEmpty') !== false || strpos($rule, '@WithNotEmpty') !== false) {
                 $checkOnNotEmpty = true;
                 $rule = str_replace('@CheckOnNotEmpty', '', $rule);
                 $rule = str_replace('@WithNotEmpty', '', $rule);
             }
 
-            if (str_contains($rule, '@msg:')) {
+            if (strpos($rule, '@msg:') !== false) {
                 $errorTips = StringUtils::substringAfterLast($rule, '@');
                 $errorTips = preg_replace('/^msg:[\x20\t]*/', '', $errorTips);
                 $errorTips = trim($errorTips);
                 $rule = StringUtils::substringBeforeLast($rule, '@');
             }
 
-            if (str_contains($rule, '@')) {
+            if (strpos($rule, '@') !== false) {
                 $fieldName = trim(StringUtils::substringBefore($rule, '@'));
                 $validator = StringUtils::substringAfter($rule, '@');
 
-                if (str_contains($validator, ':')) {
+                if (strpos($validator, ':') !== false) {
                     $checkValue = trim(StringUtils::substringAfter($validator, ':'));
                     $validator = trim(StringUtils::substringBefore($validator, ':'));
                 }
@@ -78,13 +89,23 @@ final class DataValidator
             }
 
             if (empty($errorTips)) {
-                $errorTips = match ($validator) {
-                    'Mobile' => '不是有效的手机号码',
-                    'Email' => '不是有效的邮箱地址',
-                    'PasswordTooSimple' => '密码过于简单',
-                    'Idcard' => '不是有效的身份证号码',
-                    default => '必须填写',
-                };
+                switch ($validator) {
+                    case 'Mobile':
+                        $errorTips = '不是有效的手机号码';
+                        break;
+                    case 'Email':
+                        $errorTips = '不是有效的邮箱地址';
+                        break;
+                    case 'PasswordTooSimple':
+                        $errorTips = '密码过于简单';
+                        break;
+                    case 'Idcard':
+                        $errorTips = '不是有效的身份证号码';
+                        break;
+                    default:
+                        $errorTips = '必须填写';
+                        break;
+                }
             }
 
             if (!$failfast && isset($validateErrors[$fieldName])) {
@@ -125,8 +146,8 @@ final class DataValidator
             $func = "is$validator";
             $args = $checkValue === '' ? [$fieldValue] : [$fieldValue, $checkValue];
 
-            if (method_exists(self::class, $func)) {
-                if (call_user_func_array([self::class, $func], $args)) {
+            if (method_exists(DataValidator::class, $func)) {
+                if (call_user_func_array([DataValidator::class, $func], $args)) {
                     continue;
                 }
 
@@ -138,9 +159,14 @@ final class DataValidator
                 continue;
             }
 
-            $checker = collect(self::$customRuleCheckers)->first(fn($it) => (
-                strtolower($it->getRuleName()) === strtolower($validator)
-            ));
+            $checker = null;
+
+            foreach (self::$customRuleCheckers as $it) {
+                if (strtolower($it->getRuleName()) === strtolower($validator)) {
+                    $checker = $it;
+                    break;
+                }
+            }
 
             if (!($checker instanceof RuleChecker) || $checker->check($fieldValue, $checkValue)) {
                 continue;
@@ -434,7 +460,11 @@ final class DataValidator
     private static function isStrInI(string $value, string $range): bool
     {
         $parts = preg_split(Regexp::COMMA_SEP, trim($range));
-        $parts = array_map(fn($it) => strtolower($it), $parts);
+
+        $parts = array_map(function ($it) {
+            return strtolower($it);
+        }, $parts);
+
         return in_array(strtolower($value), $parts);
     }
 
@@ -578,8 +608,8 @@ final class DataValidator
         $sum = 0;
 
         for ($i = 0; $i < $n1; $i++) {
-            $n2 = (int)$value[$i];
-            $n3 = (int)$a1[$i];
+            $n2 = (int) $value[$i];
+            $n3 = (int) $a1[$i];
             $sum += $n2 * $n3;
         }
 

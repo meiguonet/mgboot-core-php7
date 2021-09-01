@@ -6,7 +6,10 @@ use mgboot\core\exception\HttpError;
 
 final class HtmlResponse implements ResponsePayload
 {
-    private string $contents;
+    /**
+     * @var string
+     */
+    private $contents;
 
     private function __construct(string $contents = '')
     {
@@ -17,7 +20,7 @@ final class HtmlResponse implements ResponsePayload
     {
     }
 
-    public static function withContents(string $contents): self
+    public static function withContents(string $contents): HtmlResponse
     {
         return new self($contents);
     }
@@ -27,7 +30,11 @@ final class HtmlResponse implements ResponsePayload
         return 'text/html; charset=utf-8';
     }
 
-    public function getContents(): string|HttpError
+    /**
+     * @return string|HttpError
+     * @noinspection PhpReturnDocTypeMismatchInspection
+     */
+    public function getContents()
     {
         return $this->contents;
     }

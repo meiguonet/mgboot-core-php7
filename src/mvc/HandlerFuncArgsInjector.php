@@ -3,7 +3,6 @@
 namespace mgboot\core\mvc;
 
 use Lcobucci\JWT\Token;
-use mgboot\Cast;
 use mgboot\core\http\server\Request;
 use mgboot\http\server\UploadedFile;
 use mgboot\util\ArrayUtils;
@@ -12,16 +11,14 @@ use mgboot\util\ReflectUtils;
 use mgboot\util\StringUtils;
 use ReflectionClass;
 use ReflectionMethod;
-use ReflectionNamedType;
 use ReflectionProperty;
-use ReflectionType;
 use RuntimeException;
 use stdClass;
 use Throwable;
 
 final class HandlerFuncArgsInjector
 {
-    private static string $fmt1 = 'fail to inject arg for handler function %s, name: %s, type: %s';
+    private static $fmt1 = 'fail to inject arg for handler function %s, name: %s, type: %s';
 
     private function __construct()
     {
@@ -122,9 +119,6 @@ final class HandlerFuncArgsInjector
             case 'string':
                 $args[] = $req->jwtStringClaim($claimName);
                 break;
-            case 'array':
-                $args[] = $req->jwtArrayClaim($claimName);
-                break;
             default:
                 if ($info->isNullable()) {
                     $args[] = null;
@@ -183,10 +177,12 @@ final class HandlerFuncArgsInjector
                 $args[] = $req->requestParamAsBoolean($name);
                 break;
             case 'string':
-                $args[] = trim($req->requestParamAsString($name));
-                break;
-            case 'array':
-                $args[] = $req->requestParamAsArray($name);
+                if ($info->isDecimal()) {
+                    $args[] = bcadd($req->requestParamAsString($name), 0, 2);
+                } else {
+                    $args[] = trim($req->requestParamAsString($name, $info->getSecurityMode()));
+                }
+
                 break;
             default:
                 if ($info->isNullable()) {
@@ -258,7 +254,7 @@ final class HandlerFuncArgsInjector
 
         try {
             $uploadFile = $req->getUploadedFiles()[$formFieldName];
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             $uploadFile = null;
         }
 
@@ -339,7 +335,7 @@ final class HandlerFuncArgsInjector
 
         try {
             $bean = new $className();
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             $bean = null;
         }
 
@@ -393,92 +389,30 @@ final class HandlerFuncArgsInjector
                 continue;
             }
 
-            $fieldType = $field->getType();
-
-            if ($fieldType instanceof ReflectionType) {
-                $nullbale = $fieldType->allowsNull();
-
-                if ($fieldType instanceof ReflectionNamedType) {
-                    $fieldType = strtolower($fieldType->getName());
-                } else {
-                    $fieldType = '';
-                }
-            } else {
-                $nullbale = true;
-                $fieldType = '';
-            }
-
             $mapValue = ReflectUtils::getMapValueByProperty($map1, $field);
 
-            if ($mapValue === null) {
-                if (!$nullbale) {
-                    return [false, "fail to get value from param map for field: {$field->getName()}"];
-                }
-
-                try {
-                    $setter->invoke($bean, null);
-                } catch (Throwable $ex) {
-                    return [false, $ex->getMessage()];
-                }
-
-                continue;
-            }
-
-            switch ($fieldType) {
-                case 'int':
-                    try {
-                        $setter->invoke($bean, Cast::toInt($mapValue, 0));
-                    } catch (Throwable $ex) {
-                        return [false, $ex->getMessage()];
-                    }
-
-                    break;
-                case 'float':
-                    try {
-                        $setter->invoke($bean, Cast::toFloat($mapValue, 0.0));
-                    } catch (Throwable $ex) {
-                        return [false, $ex->getMessage()];
-                    }
-
-                    break;
-                case 'boolean':
-                case 'bool':
-                    try {
-                        $setter->invoke($bean, Cast::toBoolean($mapValue));
-                    } catch (Throwable $ex) {
-                        return [false, $ex->getMessage()];
-                    }
-
-                    break;
-                case 'string':
-                    try {
-                        $setter->invoke($bean, Cast::toString($mapValue));
-                    } catch (Throwable $ex) {
-                        return [false, $ex->getMessage()];
-                    }
-
-                    break;
-                default:
-                    try {
-                        $setter->invoke($bean, $mapValue);
-                    } catch (Throwable $ex) {
-                        return [false, $ex->getMessage()];
-                    }
-
-                    break;
+            try {
+                $setter->invoke($bean, $mapValue);
+            } catch (Throwable $ex) {
+                return [false, $ex->getMessage()];
             }
         }
 
         return [true, ''];
     }
 
-    private static function thowException(string $handler, HandlerFuncArgInfo $info, mixed... $args): void
+    /**
+     * @param string $handler
+     * @param HandlerFuncArgInfo $info
+     * @param mixed ...$args
+     */
+    private static function thowException(string $handler, HandlerFuncArgInfo $info, ... $args): void
     {
         $fmt = self::$fmt1;
         $params = [$handler, $info->getName(), $info->getType()];
 
         if (!empty($args)) {
-            if (is_string($args[0]) && str_starts_with('@@fmt:')) {
+            if (is_string($args[0]) && StringUtils::startsWith($args[0], '@@fmt:')) {
                 $fmt = str_replace('@@fmt:', '', array_shift($args));
 
                 if (!empty($args)) {

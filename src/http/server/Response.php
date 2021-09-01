@@ -56,19 +56,37 @@ final class Response
         '600 Unparseable Response Headers'
     ];
 
-    private Request $req;
-    private mixed $swooleHttpResponse = null;
-    private mixed $payload = null;
-    private array $extraHeaders = [];
+    /**
+     * @var Request
+     */
+    private $req;
+
+    /**
+     * @var mixed
+     */
+    private $swooleHttpResponse = null;
+
+    /**
+     * @var mixed
+     */
+    private $payload = null;
+
+    /**
+     * @var array
+     */
+    private $extraHeaders = [];
 
     /**
      * @var ExceptionHandler[]
      */
-    private array $exceptionHandlers = [];
+    private $exceptionHandlers = [];
 
-    private ?CorsSettings $corsSettings = null;
+    /**
+     * @var CorsSettings|null
+     */
+    private $corsSettings = null;
 
-    private function __construct(Request $req, mixed $swooleHttpResponse = null)
+    private function __construct(Request $req, $swooleHttpResponse = null)
     {
         $this->req = $req;
 
@@ -81,23 +99,26 @@ final class Response
     {
     }
 
-    public static function create(Request $req, mixed $swooleHttpResponse = null): self
+    public static function create(Request $req, $swooleHttpResponse = null): Response
     {
         return new self($req, $swooleHttpResponse);
     }
 
-    public function withPayload(mixed $payload): self
+    public function withPayload($payload): Response
     {
         $this->payload = $payload;
         return $this;
     }
 
-    public function getPayload(): mixed
+    /**
+     * @return mixed
+     */
+    public function getPayload()
     {
         return $this->payload;
     }
 
-    public function addExtraHeader(string $headerName, string $headerValue): self
+    public function addExtraHeader(string $headerName, string $headerValue): Response
     {
         $this->extraHeaders[$headerName] = $headerValue;
         return $this;
@@ -105,15 +126,15 @@ final class Response
 
     /**
      * @param ExceptionHandler[] $handlers
-     * @return $this
+     * @return Response
      */
-    public function withExceptionHandlers(array $handlers): self
+    public function withExceptionHandlers(array $handlers): Response
     {
         $this->exceptionHandlers = $handlers;
         return $this;
     }
 
-    public function withCorsSettings(CorsSettings $settings): self
+    public function withCorsSettings(CorsSettings $settings): Response
     {
         $this->corsSettings = $settings;
         return $this;
@@ -136,7 +157,7 @@ final class Response
             return;
         }
 
-        $isAttachment = str_starts_with($contents, '@attachment:');
+        $isAttachment = StringUtils::startsWith($contents, '@attachment:');
 
         if ($isAttachment) {
             list($attachmentFileName, $contentLength, $contents) = $this->handleAttachmentResponseForFpm($contents);
@@ -150,7 +171,7 @@ final class Response
             $headers = array_merge($headers, $this->buildAttachmentHeaders($attachmentFileName, $contentLength));
         }
 
-        $isImage = str_starts_with($contents, '@image:');
+        $isImage = StringUtils::startsWith($contents, '@image:');
 
         if ($isImage) {
             $contents = $this->handleImageResponseForFpm($contents);
@@ -212,7 +233,7 @@ final class Response
             return;
         }
 
-        $isAttachment = str_starts_with($contents, '@attachment:');
+        $isAttachment = StringUtils::startsWith($contents, '@attachment:');
         $fromFile = false;
 
         if ($isAttachment) {
@@ -227,7 +248,7 @@ final class Response
             $headers = array_merge($headers, $this->buildAttachmentHeaders($attachmentFileName, $contentLength));
         }
 
-        $isImage = str_starts_with($contents, '@image:');
+        $isImage = StringUtils::startsWith($contents, '@image:');
 
         if ($isImage) {
             list($fromFile, $contents) = $this->handleImageResponseForFpm($contents);
@@ -312,7 +333,7 @@ final class Response
         $handler = null;
 
         foreach ($this->exceptionHandlers as $it) {
-            if (str_contains($it->getExceptionClassName(), $clazz)) {
+            if (strpos($it->getExceptionClassName(), $clazz) !== false) {
                 $handler = $it;
                 break;
             }
@@ -341,7 +362,7 @@ final class Response
         $contents = str_replace('@attachment:', '', $contents);
         list($attachmentFilename, $contents) = explode('^^^', $contents);
 
-        if (str_starts_with($contents, 'file://')) {
+        if (StringUtils::startsWith($contents, 'file://')) {
             $filepath = str_replace('file://', '', $contents);
             $contentLength = (int) filesize($filepath);
             $contents = file_get_contents($filepath);
@@ -357,7 +378,7 @@ final class Response
         $contents = str_replace('@attachment:', '', $contents);
         list($attachmentFilename, $contents) = explode('^^^', $contents);
 
-        if (str_starts_with($contents, 'file://')) {
+        if (StringUtils::startsWith($contents, 'file://')) {
             $filepath = str_replace('file://', '', $contents);
             $contentLength = (int) filesize($filepath);
             return [$attachmentFilename, true, $contentLength, $filepath];
@@ -370,7 +391,7 @@ final class Response
     {
         $contents = str_replace('@image:', '', $contents);
 
-        if (str_starts_with($contents, 'file://')) {
+        if (StringUtils::startsWith($contents, 'file://')) {
             $filepath = str_replace('file://', '', $contents);
             $contents = file_get_contents($filepath);
         }
@@ -382,7 +403,7 @@ final class Response
     {
         $contents = str_replace('@image:', '', $contents);
 
-        if (str_starts_with($contents, 'file://')) {
+        if (StringUtils::startsWith($contents, 'file://')) {
             $filepath = str_replace('file://', '', $contents);
             return [true, $filepath];
         }
@@ -507,7 +528,7 @@ final class Response
     private function getErrorReason(int $statusCode): string
     {
         foreach (self::HTTP_ERRORS as $item) {
-            if (!str_starts_with($item, "$statusCode")) {
+            if (!StringUtils::startsWith($item, "$statusCode")) {
                 continue;
             }
 

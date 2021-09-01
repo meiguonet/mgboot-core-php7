@@ -18,7 +18,7 @@ class DataValidateMiddleware implements Middleware
     {
     }
 
-    public static function create(): self
+    public static function create(): DataValidateMiddleware
     {
         return new self();
     }
@@ -72,7 +72,7 @@ class DataValidateMiddleware implements Middleware
         $result = DataValidator::validate($data, $validateRules, $failfast);
 
         if ($failfast && is_string($result) && $result !== '') {
-            $ctx->getResponse()->withPayload(new DataValidateException(errorTips: $result));
+            $ctx->getResponse()->withPayload(new DataValidateException([], $result));
             $ctx->next(false);
             return;
         }

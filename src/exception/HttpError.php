@@ -4,7 +4,10 @@ namespace mgboot\core\exception;
 
 final class HttpError
 {
-    private int $statusCode;
+    /**
+     * @var int
+     */
+    private $statusCode;
 
     private function __construct(int $statusCode)
     {
@@ -19,7 +22,7 @@ final class HttpError
     {
     }
 
-    public static function create(int $statusCode): self
+    public static function create(int $statusCode): HttpError
     {
         return new self($statusCode);
     }

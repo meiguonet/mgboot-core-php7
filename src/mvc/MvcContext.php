@@ -10,9 +10,20 @@ use function FastRoute\simpleDispatcher;
 
 final class MvcContext
 {
-    private static bool $routeRulesCacheEnabled = false;
-    private static string $routeRulesCacheDir = '';
-    private static ?Dispatcher $routeDispatcher = null;
+    /**
+     * @var bool
+     */
+    private static $routeRulesCacheEnabled = false;
+
+    /**
+     * @var string
+     */
+    private static $routeRulesCacheDir = '';
+
+    /**
+     * @var Dispatcher|null
+     */
+    private static $routeDispatcher = null;
 
     private function __construct()
     {
@@ -134,7 +145,7 @@ final class MvcContext
 
         try {
             $items = include($cacheFile);
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             $items = null;
         }
 
@@ -164,7 +175,7 @@ final class MvcContext
 
                     try {
                         $info = HandlerFuncArgInfo::create($it);
-                    } catch (Throwable) {
+                    } catch (Throwable $ex) {
                         continue;
                     }
 
@@ -180,7 +191,7 @@ final class MvcContext
 
             try {
                 $rule = RouteRule::create($item);
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 continue;
             }
 
@@ -217,7 +228,10 @@ final class MvcContext
         $items = [];
 
         foreach ($routeRules as $item) {
-            $args = array_map(fn($it) => $it->toMap(), $item->getHandlerFuncArgs());
+            $args = array_map(function ($it) {
+                return $it->toMap();
+            }, $item->getHandlerFuncArgs());
+
             $items[] = array_merge($item->toMap(), ['handlerFuncArgs' => $args]);
         }
 

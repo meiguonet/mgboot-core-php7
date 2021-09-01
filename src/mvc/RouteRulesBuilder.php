@@ -2,8 +2,8 @@
 
 namespace mgboot\core\mvc;
 
+use Doctrine\Common\Annotations\AnnotationReader;
 use Lcobucci\JWT\Token;
-use mgboot\Cast;
 use mgboot\core\annotation\ClientIp;
 use mgboot\core\annotation\DeleteMapping;
 use mgboot\core\annotation\DtoBind;
@@ -11,7 +11,8 @@ use mgboot\core\annotation\GetMapping;
 use mgboot\core\annotation\HttpHeader;
 use mgboot\core\annotation\JwtAuth;
 use mgboot\core\annotation\JwtClaim;
-use mgboot\core\annotation\ParamMap;
+use mgboot\core\annotation\MapBind;
+use mgboot\core\annotation\ParamInject;
 use mgboot\core\annotation\PatchMapping;
 use mgboot\core\annotation\PathVariable;
 use mgboot\core\annotation\PostMapping;
@@ -30,7 +31,6 @@ use mgboot\util\TokenizeUtils;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
-use Stringable;
 use Throwable;
 
 final class RouteRulesBuilder
@@ -67,7 +67,7 @@ final class RouteRulesBuilder
                 $tokens = token_get_all(file_get_contents($fpath));
                 $className = TokenizeUtils::getQualifiedClassName($tokens);
                 $clazz = new ReflectionClass($className);
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $className = '';
                 $clazz = null;
             }
@@ -80,7 +80,7 @@ final class RouteRulesBuilder
 
             try {
                 $methods = $clazz->getMethods(ReflectionMethod::IS_PUBLIC);
-            } catch (Throwable) {
+            } catch (Throwable $ex) {
                 $methods = [];
             }
 
@@ -95,7 +95,7 @@ final class RouteRulesBuilder
                         self::buildJwtAuthSettings($method),
                         self::buildExtraAnnotations($method)
                     );
-                } catch (Throwable) {
+                } catch (Throwable $ex) {
                     continue;
                 }
 
@@ -148,18 +148,30 @@ final class RouteRulesBuilder
     private static function buildRouteRule(
         string $clazz,
         ReflectionMethod $method,
-        ?RequestMapping $anno,
+        $annoRequestMapping,
         array $data
     ): ?RouteRule
     {
-        $httpMethod = match (StringUtils::substringAfterLast($clazz, "\\")) {
-            'GetMapping' => 'GET',
-            'PostMapping' => 'POST',
-            'PutMapping' => 'PUT',
-            'PatchMapping' => 'PATCH',
-            'DeleteMapping' => 'DELETE',
-            default => ''
-        };
+        switch (StringUtils::substringAfterLast($clazz, "\\")) {
+            case 'GetMapping':
+                $httpMethod = 'GET';
+                break;
+            case 'PostMapping':
+                $httpMethod = 'POST';
+                break;
+            case 'PutMapping':
+                $httpMethod = 'PUT';
+                break;
+            case 'PatchMapping':
+                $httpMethod = 'PATCH';
+                break;
+            case 'DeleteMapping':
+                $httpMethod = 'DELETE';
+                break;
+            default:
+                $httpMethod = '';
+                break;
+        }
 
         if ($httpMethod === '') {
             return null;
@@ -174,25 +186,25 @@ final class RouteRulesBuilder
 
             $data = array_merge(
                 $data,
-                self::buildRequestMapping($anno, $newAnno->getValue()),
+                self::buildRequestMapping($annoRequestMapping, $newAnno->getValue()),
                 compact('httpMethod')
             );
 
             return RouteRule::create($data);
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             return null;
         }
     }
 
     /**
      * @param ReflectionMethod $method
-     * @param RequestMapping|null $anno
+     * @param mixed $annoRequestMapping
      * @param array $data
      * @return RouteRule[]
      */
     private static function buildRouteRulesForRequestMapping(
         ReflectionMethod $method,
-        ?RequestMapping $anno,
+        $annoRequestMapping,
         array $data
     ): array
     {
@@ -203,24 +215,29 @@ final class RouteRulesBuilder
                 return [];
             }
 
-            $map1 = self::buildRequestMapping($anno, $newAnno->getValue());
+            $map1 = self::buildRequestMapping($annoRequestMapping, $newAnno->getValue());
 
             return [
                 RouteRule::create(array_merge($data, $map1, ['httpMethod' => 'GET'])),
                 RouteRule::create(array_merge($data, $map1, ['httpMethod' => 'POST']))
             ];
-        } catch (Throwable) {
+        } catch (Throwable $ex) {
             return [];
         }
     }
 
-    private static function buildRequestMapping(?RequestMapping $anno, string $requestMapping): array
+    /**
+     * @param mixed $annoRequestMapping
+     * @param string $requestMapping
+     * @return array
+     */
+    private static function buildRequestMapping($annoRequestMapping, string $requestMapping): array
     {
         $requestMapping = preg_replace('/[\x20\t]+/', '', $requestMapping);
         $requestMapping = trim($requestMapping, '/');
 
-        if ($anno instanceof RequestMapping) {
-            $s1 = preg_replace('/[\x20\t]+/', '', $anno->getValue());
+        if ($annoRequestMapping instanceof RequestMapping) {
+            $s1 = preg_replace('/[\x20\t]+/', '', $annoRequestMapping->getValue());
 
             if (!empty($s1)) {
                 $requestMapping = trim($s1, '/') . '/' . $requestMapping;
@@ -234,11 +251,19 @@ final class RouteRulesBuilder
     /**
      * @param ReflectionMethod $method
      * @return HandlerFuncArgInfo[]
-     * @noinspection PhpContinueTargetingSwitchInspection
      */
     private static function buildHandlerFuncArgs(ReflectionMethod $method): array
     {
         $params = $method->getParameters();
+        $anno1 = ReflectUtils::getMethodAnnotation($method, ParamInject::class);
+
+        if ($anno1 instanceof ParamInject) {
+            $injectRules = $anno1->getValue();
+        } else {
+            $injectRules = [];
+        }
+
+        $n1 = count($injectRules) - 1;
 
         foreach ($params as $i => $p) {
             $type = $p->getType();
@@ -248,98 +273,89 @@ final class RouteRulesBuilder
                 continue;
             }
 
+            $typeName = $type->isBuiltin() ? $type->getName() : StringUtils::ensureLeft($type->getName(), "\\");
+
             $map1 = [
                 'name' => $p->getName(),
-                'type' => $type->getName()
+                'type' => $typeName
             ];
 
             if ($type->allowsNull()) {
                 $map1['nullable'] = true;
             }
 
-            switch ($type->getName()) {
-                case Request::class:
-                    $map1['request'] = true;
+            if (strpos($typeName, Request::class) !== false) {
+                $map1['request'] = true;
+                $params[$i] = HandlerFuncArgInfo::create($map1);
+                continue;
+            }
+
+            if (strpos($typeName, Token::class) !== false) {
+                $map1['jwt'] = true;
+                $params[$i] = HandlerFuncArgInfo::create($map1);
+                continue;
+            }
+
+            if ($i <= $n1) {
+                $anno = $injectRules[$i];
+
+                if ($anno instanceof ClientIp) {
+                    $map1['clientIp'] = true;
                     $params[$i] = HandlerFuncArgInfo::create($map1);
                     continue;
-                case Token::class:
-                    $map1['jwt'] = true;
+                }
+
+                if ($anno instanceof HttpHeader) {
+                    $map1['httpHeaderName'] = $anno->getName();
                     $params[$i] = HandlerFuncArgInfo::create($map1);
                     continue;
-            }
+                }
 
-            $anno =  ReflectUtils::getParameterAnnotation($p, ClientIp::class);
+                if ($anno instanceof JwtClaim) {
+                    $map1['jwtClaimName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            if ($anno instanceof ClientIp) {
-                $map1['clientIp'] = true;
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
+                if ($anno instanceof RequestParam) {
+                    $map1['requestParamName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
+                    $map1['decimal'] = $anno->isDecimal();
+                    $map1['securityMode'] = $anno->getSecurityMode();
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            $anno =  ReflectUtils::getParameterAnnotation($p, HttpHeader::class);
+                if ($anno instanceof PathVariable) {
+                    $map1['pathVariableName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            if ($anno instanceof HttpHeader) {
-                $map1['httpHeaderName'] = $anno->getName();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
+                if ($anno instanceof MapBind) {
+                    $map1['paramMap'] = true;
+                    $map1['paramMapRules'] = $anno->getRules();
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            $anno =  ReflectUtils::getParameterAnnotation($p, JwtClaim::class);
+                if ($anno instanceof UploadedFile) {
+                    $map1['uploadedFile'] = true;
+                    $map1['formFieldName'] = $anno->getValue();
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            if ($anno instanceof JwtClaim) {
-                $map1['jwtClaimName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
+                if ($anno instanceof RequestBody) {
+                    $map1['needRequestBody'] = true;
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
 
-            $anno =  ReflectUtils::getParameterAnnotation($p, PathVariable::class);
-
-            if ($anno instanceof PathVariable) {
-                $map1['pathVariableName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
-
-            $anno =  ReflectUtils::getParameterAnnotation($p, RequestParam::class);
-
-            if ($anno instanceof RequestParam) {
-                $map1['requestParamName'] = empty($anno->getName()) ? $p->getName() : $anno->getName();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
-
-            $anno =  ReflectUtils::getParameterAnnotation($p, ParamMap::class);
-
-            if ($anno instanceof ParamMap) {
-                $map1['paramMap'] = true;
-                $map1['paramMapRules'] = empty($anno->getRules()) ? [] : $anno->getRules();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
-
-            $anno =  ReflectUtils::getParameterAnnotation($p, UploadedFile::class);
-
-            if ($anno instanceof UploadedFile) {
-                $map1['uploadedFile'] = true;
-                $map1['formFieldName'] = empty($anno->getFormFieldName()) ? $p->getName() : $anno->getFormFieldName();
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
-
-            $anno =  ReflectUtils::getParameterAnnotation($p, RequestBody::class);
-
-            if ($anno instanceof RequestBody) {
-                $map1['needRequestBody'] = true;
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
-            }
-
-            $anno = ReflectUtils::getParameterAnnotation($p, DtoBind::class);
-
-            if ($anno instanceof DtoBind && !$type->isBuiltin()) {
-                $map1['dtoClassName'] = StringUtils::ensureLeft($type->getName(), "\\");
-                $params[$i] = HandlerFuncArgInfo::create($map1);
-                continue;
+                if ($anno instanceof DtoBind) {
+                    $map1['dtoClassName'] = $typeName;
+                    $params[$i] = HandlerFuncArgInfo::create($map1);
+                    continue;
+                }
             }
 
             $params[$i] = HandlerFuncArgInfo::create($map1);
@@ -351,64 +367,58 @@ final class RouteRulesBuilder
     private static function buildJwtAuthSettings(ReflectionMethod $method): array
     {
         $anno =  ReflectUtils::getMethodAnnotation($method, JwtAuth::class);
-
-        if (!($anno instanceof JwtAuth)) {
-            return [];
-        }
-
-        return ['jwtSettingsKey' => $anno->getSettingsKey()];
+        return $anno instanceof JwtAuth ? ['jwtSettingsKey' => $anno->getValue()] : [];
     }
 
     private static function buildValidateRules(ReflectionMethod $method): array
     {
         $anno = ReflectUtils::getMethodAnnotation($method, Validate::class);
-
-        if (!($anno instanceof Validate)) {
-            return [];
-        }
-
-        return ['validateRules' => $anno->getRules(), 'failfast' => $anno->isFailfast()];
+        return $anno instanceof Validate ? ['validateRules' => $anno->getRules(), 'failfast' => $anno->isFailfast()] : [];
     }
 
     private static function buildExtraAnnotations(ReflectionMethod $method): array
     {
         try {
-            $annos = $method->getAttributes();
-        } catch (Throwable) {
-            return [];
+            $reader = new AnnotationReader();
+            $annos = $reader->getMethodAnnotations($method);
+        } catch (Throwable $ex) {
+            $annos = [];
         }
 
         $excludes = [
-            StringUtils::ensureLeft(DeleteMapping::class, "\\"),
-            StringUtils::ensureLeft(GetMapping::class, "\\"),
-            StringUtils::ensureLeft(JwtAuth::class, "\\"),
-            StringUtils::ensureLeft(PatchMapping::class, "\\"),
-            StringUtils::ensureLeft(PostMapping::class, "\\"),
-            StringUtils::ensureLeft(PutMapping::class, "\\"),
-            StringUtils::ensureLeft(RequestMapping::class, "\\"),
-            StringUtils::ensureLeft(Validate::class, "\\")
+            RequestMapping::class,
+            GetMapping::class,
+            PostMapping::class,
+            PutMapping::class,
+            PatchMapping::class,
+            DeleteMapping::class,
+            JwtAuth::class,
+            Validate::class,
+            ParamInject::class
         ];
 
         $extraAnnotations = [];
 
-        foreach ($annos as $it) {
-            $clazz = StringUtils::ensureLeft($it->getName(), "\\");
-
-            if (in_array($clazz, $excludes)) {
+        foreach ($annos as $anno) {
+            if (!is_object($anno)) {
                 continue;
             }
 
-            if ($it instanceof Stringable || method_exists($it, '__toString')) {
-                $s1 = Cast::toString($it->__toString());
+            $clazz = StringUtils::ensureLeft(get_class($anno), "\\");
+            $isExclude = false;
 
-                if (!str_contains($s1, $clazz)) {
-                    $s1 = $clazz . $s1;
+            foreach ($excludes as $s1) {
+                if (strpos($clazz, $s1) !== false) {
+                    $isExclude = true;
+                    break;
                 }
-            } else {
-                $s1 = $clazz;
             }
 
-            $extraAnnotations[] = $s1;
+            if ($isExclude) {
+                continue;
+            }
+
+            $extraAnnotations[] = $clazz;
         }
 
         return compact('extraAnnotations');

@@ -6,8 +6,15 @@ use RuntimeException;
 
 final class DataValidateException extends RuntimeException
 {
-    private string $errorTips;
-    private array $validateErrors;
+    /**
+     * @var string
+     */
+    private $errorTips;
+
+    /**
+     * @var array
+     */
+    private $validateErrors;
 
     public function __construct(array $validateErrors = [], string $errorTips = '')
     {

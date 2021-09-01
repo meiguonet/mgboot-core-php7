@@ -2,16 +2,22 @@
 
 namespace mgboot\core\annotation;
 
-use Attribute;
+use Doctrine\Common\Annotations\Annotation\Target;
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+/**
+ * @Annotation
+ * @Target({"ANNOTATION", "PROPERTY"})
+ */
 final class HttpHeader
 {
-    private string $name;
+    /**
+     * @var string
+     */
+    private $name;
 
-    public function __construct(string $arg0)
+    public function __construct(?string $name = null)
     {
-        $this->name = $arg0;
+        $this->name = empty($name) ? '' : $name;
     }
 
     /**

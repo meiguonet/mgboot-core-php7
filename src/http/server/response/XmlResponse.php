@@ -8,7 +8,10 @@ use mgboot\util\ArrayUtils;
 
 class XmlResponse implements ResponsePayload
 {
-    private string $contents;
+    /**
+     * @var string
+     */
+    private $contents;
 
     private function __construct(string $contents = '')
     {
@@ -19,12 +22,17 @@ class XmlResponse implements ResponsePayload
     {
     }
 
-    public static function withContents(string $contents): self
+    public static function withContents(string $contents): XmlResponse
     {
         return new self($contents);
     }
 
-    public static function fromMap(array $map1, array|string|null $cdataKeys = null): self
+    /**
+     * @param array $map1
+     * @param array|string|null $cdataKeys
+     * @return XmlResponse
+     */
+    public static function fromMap(array $map1, $cdataKeys = null): XmlResponse
     {
         $_cdataKeys = [];
 
@@ -42,7 +50,11 @@ class XmlResponse implements ResponsePayload
         return 'text/xml; charset=utf-8';
     }
 
-    public function getContents(): string|HttpError
+    /**
+     * @return string|HttpError
+     * @noinspection PhpReturnDocTypeMismatchInspection
+     */
+    public function getContents()
     {
         return $this->contents;
     }
