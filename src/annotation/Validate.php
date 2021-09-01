@@ -3,6 +3,7 @@
 namespace mgboot\core\annotation;
 
 use Doctrine\Common\Annotations\Annotation\Target;
+use mgboot\Cast;
 use mgboot\constant\Regexp;
 
 /**
@@ -24,7 +25,7 @@ final class Validate
     public function __construct(array $values)
     {
         $rules = [];
-        $failfast = false;
+        $failfast = Cast::toBoolean($values['failfast']);
 
         if (is_string($values['rules']) && $values['rules'] !== '') {
             $rules = preg_split(Regexp::COMMA_SEP, $values['rules']);
